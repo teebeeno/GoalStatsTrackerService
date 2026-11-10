@@ -1,14 +1,16 @@
-using System.ComponentModel.DataAnnotations;
+using Microsoft.EntityFrameworkCore;
 
 namespace GoalStatsTrackerService.Model;
 
-public record Goal
+[PrimaryKey(nameof(MatchId), nameof(Id))]
+public class Goal
 {
-    [Key]
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public bool OurGoal { get; set; } = false;
-    public Guid? ScorerId { get; set; } = null;
-    public Guid? AssistId { get; set; } = null;
-    public long ScoredAt { get; set; } =  DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    public string MatchId { get; set; } = "";
+    public string Id { get; set; } = "";
+    public Side Side { get; set; }
+    public string? ScorerId { get; set; }
+    public string? AssistId { get; set; }
+    /// <summary>Wall-clock time of the goal, milliseconds since epoch.</summary>
+    public long At { get; set; }
     public int Period { get; set; } = 1;
 }
