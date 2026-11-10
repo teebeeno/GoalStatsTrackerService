@@ -2,7 +2,6 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using GoalStatsTrackerService.Database;
 using GoalStatsTrackerService.DTO;
-using GoalStatsTrackerService.Model;
 using Scalar.AspNetCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -65,16 +64,19 @@ app.MapGet("/api/health", () => Results.Ok("Healthy"));
 #region Team Endpoints
 app.MapGet("/teams", async (AppDbContext db) =>
 {
+    Console.WriteLine("Getting all teams...");
     var teams = await db.Teams.AsNoTracking().Include(t => t.Players).ToListAsync();
     return Results.Ok(teams.Select(t => t.ToDto()));
 });
 app.MapGet("/teams/{teamId}", async (AppDbContext db, string teamId) =>
 {
+    Console.WriteLine($"Getting team {teamId}...");
     var team = await db.Teams.AsNoTracking().Include(t => t.Players).FirstOrDefaultAsync(t => t.Id == teamId);
     return team == null ? Results.NotFound() : Results.Ok(team.ToDto());
 });
 app.MapPut("/teams/{teamId}", async (AppDbContext db, string teamId, TeamDto dto) =>
 {
+    Console.WriteLine($"Putting team {teamId}...");
     var team = await db.Teams.Include(t => t.Players).FirstOrDefaultAsync(t => t.Id == teamId);
     if (team == null)
     {
@@ -91,6 +93,7 @@ app.MapPut("/teams/{teamId}", async (AppDbContext db, string teamId, TeamDto dto
 });
 app.MapPatch("/teams/{teamId}", async (AppDbContext db, string teamId, TeamPatchDto patch) =>
 {
+    Console.WriteLine($"Patching team {teamId}...");
     var team = await db.Teams.Include(t => t.Players).FirstOrDefaultAsync(t => t.Id == teamId);
     if (team == null)
     {
@@ -103,6 +106,7 @@ app.MapPatch("/teams/{teamId}", async (AppDbContext db, string teamId, TeamPatch
 });
 app.MapDelete("/teams/{teamId}", async (AppDbContext db, string teamId) =>
 {
+    Console.WriteLine($"Deleting team {teamId}...");
     // The database cascades the delete to the team's players and matches
     await db.Teams.Where(t => t.Id == teamId).ExecuteDeleteAsync();
     return Results.NoContent();
@@ -112,6 +116,7 @@ app.MapDelete("/teams/{teamId}", async (AppDbContext db, string teamId) =>
 #region Player Endpoints
 app.MapPost("/teams/{teamId}/players", async (AppDbContext db, string teamId, List<PlayerDto> players) =>
 {
+    Console.WriteLine($"Posting players for team {teamId}...");
     var team = await db.Teams.Include(t => t.Players).FirstOrDefaultAsync(t => t.Id == teamId);
     if (team == null)
     {
@@ -124,6 +129,7 @@ app.MapPost("/teams/{teamId}/players", async (AppDbContext db, string teamId, Li
 });
 app.MapPatch("/teams/{teamId}/players/{playerId}", async (AppDbContext db, string teamId, string playerId, PlayerPatchDto patch) =>
 {
+    Console.WriteLine($"Patching player {playerId} for team {teamId}...");
     var player = await db.Players.FirstOrDefaultAsync(p => p.TeamId == teamId && p.Id == playerId);
     if (player == null)
     {
@@ -136,6 +142,7 @@ app.MapPatch("/teams/{teamId}/players/{playerId}", async (AppDbContext db, strin
 });
 app.MapDelete("/teams/{teamId}/players/{playerId}", async (AppDbContext db, string teamId, string playerId) =>
 {
+    Console.WriteLine($"Deleting player {playerId} for team {teamId}...");
     await db.Players.Where(p => p.TeamId == teamId && p.Id == playerId).ExecuteDeleteAsync();
     return Results.NoContent();
 });
@@ -144,6 +151,7 @@ app.MapDelete("/teams/{teamId}/players/{playerId}", async (AppDbContext db, stri
 #region Match Endpoints
 app.MapGet("/matches", async (AppDbContext db, string? teamId, string? status) =>
 {
+    Console.WriteLine($"Getting matches for team {teamId} with status {status}...");
     var query = db.Matches.AsNoTracking().Include(m => m.Goals).AsQueryable();
     if (!string.IsNullOrEmpty(teamId))
     {
@@ -161,11 +169,13 @@ app.MapGet("/matches", async (AppDbContext db, string? teamId, string? status) =
 });
 app.MapGet("/matches/{matchId}", async (AppDbContext db, string matchId) =>
 {
+    Console.WriteLine($"Getting match {matchId}...");
     var match = await db.Matches.AsNoTracking().Include(m => m.Goals).FirstOrDefaultAsync(m => m.Id == matchId);
     return match == null ? Results.NotFound() : Results.Ok(match.ToDto());
 });
 app.MapPut("/matches/{matchId}", async (AppDbContext db, string matchId, MatchDto dto) =>
 {
+    Console.WriteLine($"Putting match {matchId}...");
     if (!await db.Teams.AnyAsync(t => t.Id == dto.TeamId))
     {
         return Results.BadRequest($"Team {dto.TeamId} does not exist.");
@@ -188,6 +198,7 @@ app.MapPut("/matches/{matchId}", async (AppDbContext db, string matchId, MatchDt
 app.MapPatch("/matches/{matchId}", async (AppDbContext db, string matchId, MatchPatchDto patch) =>
 {
     var match = await db.Matches.Include(m => m.Goals).FirstOrDefaultAsync(m => m.Id == matchId);
+    Console.WriteLine($"Patching match {matchId}...");
     if (match == null)
     {
         return Results.NotFound();
@@ -199,6 +210,7 @@ app.MapPatch("/matches/{matchId}", async (AppDbContext db, string matchId, Match
 });
 app.MapDelete("/matches/{matchId}", async (AppDbContext db, string matchId) =>
 {
+    Console.WriteLine($"Deleting match {matchId}...");
     // The database cascades the delete to the match's goals
     await db.Matches.Where(m => m.Id == matchId).ExecuteDeleteAsync();
     return Results.NoContent();
@@ -208,6 +220,7 @@ app.MapDelete("/matches/{matchId}", async (AppDbContext db, string matchId) =>
 #region Goal Endpoints
 app.MapPut("/matches/{matchId}/goals/{goalId}", async (AppDbContext db, string matchId, string goalId, GoalDto dto) =>
 {
+    Console.WriteLine($"Putting goal {goalId} for match {matchId}...");
     var match = await db.Matches.Include(m => m.Goals).FirstOrDefaultAsync(m => m.Id == matchId);
     if (match == null)
     {
@@ -221,6 +234,7 @@ app.MapPut("/matches/{matchId}/goals/{goalId}", async (AppDbContext db, string m
 });
 app.MapPatch("/matches/{matchId}/goals/{goalId}", async (AppDbContext db, string matchId, string goalId, GoalPatchDto patch) =>
 {
+    Console.WriteLine($"Patching goal {goalId} for match {matchId}...");
     var goal = await db.Goals.FirstOrDefaultAsync(g => g.MatchId == matchId && g.Id == goalId);
     if (goal == null)
     {
@@ -233,6 +247,7 @@ app.MapPatch("/matches/{matchId}/goals/{goalId}", async (AppDbContext db, string
 });
 app.MapDelete("/matches/{matchId}/goals/{goalId}", async (AppDbContext db, string matchId, string goalId) =>
 {
+    Console.WriteLine($"Deleting goal {goalId} for match {matchId}...");
     await db.Goals.Where(g => g.MatchId == matchId && g.Id == goalId).ExecuteDeleteAsync();
     return Results.NoContent();
 });
@@ -241,6 +256,7 @@ app.MapDelete("/matches/{matchId}/goals/{goalId}", async (AppDbContext db, strin
 #region Import Endpoints
 app.MapPost("/import", async (AppDbContext db, ImportDto data) =>
 {
+    Console.WriteLine($"Importing {data.Teams.Count} teams and {data.Matches.Count} matches...");
     var teamIds = data.Teams.Select(t => t.Id).ToHashSet();
     var orphan = data.Matches.FirstOrDefault(m => !teamIds.Contains(m.TeamId));
     if (orphan != null)
